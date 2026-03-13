@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { Playfair_Display, Lato } from "next/font/google";
 import "./globals.css";
 import Layout from "@/components/Layout";
+import { Toaster } from "@/components/ui/toaster";
+
 
 // const geistSans = Geist({
 //   variable: "--font-geist-sans",
@@ -43,6 +45,7 @@ export default function RootLayout({
       >
         
         <Layout>
+          <Toaster/>
           {children}
         </Layout>
       </body>
