@@ -2,6 +2,8 @@
 import { useState } from "react";
 import { Mail, Phone, MapPin, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import api from "@/lib/api";
+import { set } from "react-hook-form";
 
 const inquiryTypes = [
   "General Inquiry",
@@ -21,20 +23,77 @@ const Contact = () => {
     inquiryType: "",
     message: "",
   });
+  const [errors, setErrors] = useState<any>({});
+  const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    setErrors({ ...errors, [e.target.name]: "" });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const validate = () => {
+    const newErrors:any={};
+    if (!form.name.trim()) newErrors.name = "Name is required";
+    if (!form.email.trim()) newErrors.email = "Email is required";
+    else if (!/\S+@\S+\.\S+/.test(form.email)) newErrors.email = "Invalid email format";
+    if (!form.phone.trim()) newErrors.phone = "Phone number is required";
+     else if (!/^\+?\d{10,15}$/.test(form.phone)) newErrors.phone = "Invalid phone number format";
+    if (!form.inquiryType) newErrors.inquiryType = "Inquiry type is required";
+    if (!form.message.trim()) newErrors.message = "Message is required";
+    return newErrors;
+  }
+
+  const handleSubmit = async(e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.email || !form.message) {
-      toast({ title: "Please fill in all required fields", variant: "destructive" });
+    const errors = validate();
+    if (Object.keys(errors).length > 0) {
+      setErrors(errors);
+      // toast({ title: "Please fill in all required fields", variant: "destructive" });
       return;
     }
-    setSubmitted(true);
-    toast({ title: "Inquiry sent successfully!" });
+ try {
+      setLoading(true);
+      const payload = {
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        enquiry_type: form.inquiryType,
+        message: form.message,
+      }
+
+      const response = await api.post(
+        "enquiry", // 🔥 replace with your API
+        payload
+      );
+
+      setSubmitted(true);
+      toast({ title: "Inquiry sent successfully!" });
+
+      setForm({
+        name: "",
+        email: "",
+        phone: "",
+        inquiryType: "",
+        message: "",
+      });
+
+      setErrors({});
+          } catch (error: any) {
+            console.log(error)
+      if (error.response?.data?.errors) {
+        // Backend validation errors
+        setErrors(error.response.data.errors);
+      } else {
+        toast({
+          title: "Something went wrong",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+
   };
 
   return (
@@ -146,9 +205,14 @@ const Contact = () => {
                         onChange={handleChange}
                         className="w-full bg-background border border-border rounded-md px-4 py-2.5 font-body text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
                         placeholder="Your full name"
-                        required
+                        
                         maxLength={100}
                       />
+                        {errors.name && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.name}
+                  </p>
+                )}
                     </div>
                     <div>
                       <label className="block text-sm font-body font-semibold text-foreground mb-1">Email *</label>
@@ -159,9 +223,14 @@ const Contact = () => {
                         onChange={handleChange}
                         className="w-full bg-background border border-border rounded-md px-4 py-2.5 font-body text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
                         placeholder="your@email.com"
-                        required
+                        
                         maxLength={255}
                       />
+                        {errors.email && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.email}
+                  </p>
+                )}
                     </div>
                   </div>
 
@@ -177,6 +246,11 @@ const Contact = () => {
                         placeholder="+91 XXXXX XXXXX"
                         maxLength={15}
                       />
+                        {errors.phone && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.phone}
+                  </p>
+                )}
                     </div>
                     <div>
                       <label className="block text-sm font-body font-semibold text-foreground mb-1">Inquiry Type</label>
@@ -191,6 +265,11 @@ const Contact = () => {
                           <option key={t} value={t}>{t}</option>
                         ))}
                       </select>
+                        {errors.name && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.inquiryType}
+                  </p>
+                )}
                     </div>
                   </div>
 
@@ -203,17 +282,25 @@ const Contact = () => {
                       rows={5}
                       className="w-full bg-background border border-border rounded-md px-4 py-2.5 font-body text-foreground focus:ring-2 focus:ring-ring focus:outline-none resize-none"
                       placeholder="Tell us about your inquiry..."
-                      required
+                      
                       maxLength={1000}
                     />
+                      {errors.message && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.message}
+                  </p>
+                )}
                   </div>
 
                   <button
                     type="submit"
+                      disabled={loading}
                     className="w-full bg-gradient-honey text-primary-foreground py-3 rounded-md font-body font-bold shadow-honey hover:opacity-90 transition-opacity cursor-pointer"
                   >
-                    Send Message
+                    {loading ? "Sending..." : "Send Message"}
                   </button>
+
+            
                 </form>
               )}
             </div>
